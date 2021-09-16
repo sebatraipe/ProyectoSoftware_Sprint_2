@@ -1,0 +1,44 @@
+.navbar{
+	background-color: rgb(63, 81, 181);
+}
+
+.barra_operaciones{
+	margin: 0 60px; 
+	margin-bottom: 50px; 
+	margin-top: 15px;
+}
+
+.fa-plus-circle{
+	color: rgb(63, 81, 181); 
+	font-size: 30px; 
+	position: absolute;
+}
+
+
+.fa-list-alt{
+	color: rgb(63, 81, 181); 
+	font-size: 30px; 
+	position: absolute;
+	margin-left: 60px;
+}
+
+.contenedor_tabla{
+	margin: 0 50px;
+}
+
+.table{
+	margin-top: 10px;
+}
+
+.fa-trash-alt{
+	color: red; 
+	padding: 7px; 
+}
+
+.fa-edit{
+	color: rgb(63, 81, 181);
+}
+
+a{
+	text-decoration: none;
+}
