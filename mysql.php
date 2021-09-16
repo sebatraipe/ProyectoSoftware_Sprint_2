@@ -100,9 +100,17 @@
             return $user;
         }
 
-         public function updateUser($id, $nombre, $apellido, $username, $password, $email, $rol){
+        public function updateUser(user $user){
             $db_conn = $this->connection();
-            $query = "UPDATE usuario set nombre='$nombre', apellido='$apellido', username='$username', password='$password', email='$email', rol='$rol' where id = '$id'";
+            $id_user = $user->getId();
+            $nombre = $user->getNombre();
+            $apellido = $user->getApellido();
+            $username = $user->getUsername();
+            $password = $user->getPassword();
+            $email = $user->getEmail();
+            $id_rol = $this->obtenerIdRol($user->getRol());
+
+            $query = "UPDATE usuario set nombre='$nombre', apellido='$apellido', username='$username', password='$password', email='$email', rol='$id_rol' where id = '$id_user'";
             mysqli_query($db_conn, $query);
         }
     }
