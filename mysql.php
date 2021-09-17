@@ -86,20 +86,6 @@
             mysqli_query($db_conn, $query);
         }
 
-
-        /*Retorna los datos de un unico usuario*/
-         public function findUser($idUser)
-        {
-            $dbConn = $this->connection();
-            $query = "SELECT u.id, u.nombre, apellido, username, password, email, r.nombre as nombre_rol, descripcion from usuario u join rol r on (u.rol=r.id) were u.id = '$idUser'";
-            $resultado = mysqli_query($dbConn, $query);
-            $fila = mysqli_fetch_array($resultado);
-            $rol = new rol($fila['nombre_rol'], $fila['descripcion']);
-            $user = new user($fila['id'], $fila['nombre'], $fila['apellido'], $fila['username'], $fila['password'], $fila['email'], $rol);
-            
-            return $user;
-        }
-
         public function updateUser(user $user){
             $db_conn = $this->connection();
             $id_user = $user->getId();
