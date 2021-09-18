@@ -1,5 +1,7 @@
 <?php 
 
+    mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT | !MYSQLI_REPORT_INDEX);
+
     class mysql
     {
         private $host = "localhost";
@@ -9,31 +11,29 @@
         private $usuarios = array();
         private $roles = array();
 
-        public function __construct()
-        {
-        }
-
-        private function connection()
-        {
-            try {
-                return $connection = mysqli_connect($this->host, $this->user, $this->password, $this->data_base);
-            } catch (Exception $e) {
-                print_r($e->getMessage());
+    
+        private function connection(){
+            try{
+            $connection = mysqli_connect($this->host, $this->user, $this->password, $this->data_base);
+            }catch(Exception $e){
+                throw new MyException("Error de conexion", MyException::$ERROR_FATAL);    
             }
+            return $connection;
         }
 
         /* Retorna un array de usuarios... */
         public function findAllUser()
         {
             /* JOIN: select id, nombre, apellido, username, password, email,  */
-            $dbConn = $this->connection();
+            $dbConn = $this->connection();  
             $query = "SELECT u.id, u.nombre, apellido, username, password, email, r.nombre as nombre_rol, descripcion from usuario u join rol r on (u.rol=r.id)";
             $resultado = mysqli_query($dbConn, $query);
             while ($fila = mysqli_fetch_array($resultado)) {
                 $rol = new rol($fila['nombre_rol'], $fila['descripcion']);
                 $user = new user($fila['id'], $fila['nombre'], $fila['apellido'], $fila['username'], $fila['password'], $fila['email'], $rol);
                 array_push($this->usuarios, $user);
-            }
+                }  
+
             return $this->usuarios;
         }
 
@@ -51,18 +51,27 @@
             return $this->roles;
         }
 
-        public function createUser(user $user)
-        {
+        public function createUser(user $user){
+
             $db_conn = $this->connection();
-            $nombre = $user->getNombre();
-            $apellido = $user->getApellido();
-            $username = $user->getUsername();
-            $password = $user->getPassword();
-            $email = $user->getEmail();
-            $id_rol = $this->obtenerIdRol($user->getRol());
-            $query = "INSERT INTO usuario (nombre, apellido, username, password, email, rol) VALUES ('$nombre', '$apellido', '$username', '$password', '$email', '$id_rol')";
-            mysqli_query($db_conn, $query);
-        }
+            try{
+            if(!$this->usuarioExiste($user->getUsername())){
+                $nombre = $user->getNombre();
+                $apellido = $user->getApellido();
+                $username = $user->getUsername();
+                $password = $user->getPassword();
+                $email = $user->getEmail();
+                $id_rol = $this->obtenerIdRol($user->getRol());
+                $query = "INSERT INTO usuario (nombre, apellido, username, password, email, rol) VALUES ('$nombre', '$apellido', '$username', '$password', '$email', '$id_rol')";
+                mysqli_query($db_conn, $query);
+                echo "exito";
+                throw new MyException("Registrado correctamente", MyException::$OPERACION_EXITOSA);
+            }
+            }catch(mysqli_sql_exception $e){
+                throw new MyException("El nombre de usuario ya existe", MyException::$USUARIO_DUPLICADO);
+            }
+
+            } 
 
         public function obtenerIdRol($nombre_rol){
             $db_conn = $this->connection();
@@ -84,34 +93,56 @@
             $db_conn = $this->connection();
             $query = "DELETE FROM usuario where id = '$id'";
             mysqli_query($db_conn, $query);
+            throw new MyException("Usuario eliminado", MyException::$OPERACION_EXITOSA);
         }
 
 
-        /*Retorna los datos de un unico usuario*/
-         public function findUser($idUser)
+        /*Retorna true si el usuario existe y false en caso contrario*/
+         public function usuarioExiste($username)
         {
             $dbConn = $this->connection();
-            $query = "SELECT u.id, u.nombre, apellido, username, password, email, r.nombre as nombre_rol, descripcion from usuario u join rol r on (u.rol=r.id) were u.id = '$idUser'";
+            $query = "SELECT u.id from usuario u where u.username = '$username'";
             $resultado = mysqli_query($dbConn, $query);
-            $fila = mysqli_fetch_array($resultado);
-            $rol = new rol($fila['nombre_rol'], $fila['descripcion']);
-            $user = new user($fila['id'], $fila['nombre'], $fila['apellido'], $fila['username'], $fila['password'], $fila['email'], $rol);
-            
-            return $user;
+            if(mysqli_num_rows($resultado) > 0){
+                return true;
+            }
+            else
+                return false;    
         }
 
-        public function updateUser(user $user){
-            $db_conn = $this->connection();
+         public function updateUser(user $user){
+            
             $id_user = $user->getId();
-            $nombre = $user->getNombre();
-            $apellido = $user->getApellido();
             $username = $user->getUsername();
-            $password = $user->getPassword();
-            $email = $user->getEmail();
-            $id_rol = $this->obtenerIdRol($user->getRol());
 
-            $query = "UPDATE usuario set nombre='$nombre', apellido='$apellido', username='$username', password='$password', email='$email', rol='$id_rol' where id = '$id_user'";
-            mysqli_query($db_conn, $query);
+            if($this->sePuedeActualizar($username, $id_user)){
+                $db_conn = $this->connection();
+                $nombre = $user->getNombre();
+                $apellido = $user->getApellido();
+                $password = $user->getPassword();
+                $email = $user->getEmail();
+                $id_rol = $this->obtenerIdRol($user->getRol());
+
+                $query = "UPDATE usuario set nombre='$nombre', apellido='$apellido', username='$username', password='$password', email='$email', rol='$id_rol' where id = '$id_user'";
+                mysqli_query($db_conn, $query);
+                throw new MyException("Datos actualizados correctamente", MyException::$OPERACION_EXITOSA);
+            }
+            else
+                throw new MyException("El nombre de usuario ya existe", MyException::$USUARIO_DUPLICADO);
+        }
+
+        public function sePuedeActualizar($newUsername, $id){
+            $dbConn = $this->connection();
+            $query = "SELECT u.username from usuario u where u.id = '$id'";
+            $resultado = mysqli_query($dbConn, $query);
+            $fila = mysqli_fetch_array($resultado);
+            if($newUsername != $fila['username']){
+                if(!$this->usuarioExiste($newUsername))
+                    return true;
+                else
+                    return false;
+            }
+            return true;
         }
     }
 ?>
